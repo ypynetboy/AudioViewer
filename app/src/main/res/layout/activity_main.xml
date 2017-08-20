@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context="com.example.ypy.audioviewer.MainActivity">
 
-    <com.example.ypy.audioviewer.WaveViewer
+    <com.example.ypy.audioviewer.AudioWaveViewer
         android:id="@+id/wave_viewer"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
