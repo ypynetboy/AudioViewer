@@ -14,8 +14,6 @@ public class Recorder implements Runnable {
 
     private boolean inited = false;
     private AudioRecord record;
-    private ShortBuffer recordBuffer = ShortBuffer.allocate(512 * 1024);
-    private int recordLength = 0;
     private int bufferSize;
     private OnUpdateListener listener;
     private long lastCallTime; // Last call updated listener times.
@@ -27,7 +25,7 @@ public class Recorder implements Runnable {
     public void init(int audioSource, int sampleRateInHz, int channelConfig) {
         if (inited)
             return;
-        bufferSize = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, AudioFormat.ENCODING_PCM_16BIT);
+        bufferSize = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, AudioFormat.ENCODING_PCM_16BIT) * 1024;
         record = new AudioRecord(audioSource, sampleRateInHz, channelConfig,
                 AudioFormat.ENCODING_PCM_16BIT, bufferSize);
         inited = true;
@@ -37,8 +35,6 @@ public class Recorder implements Runnable {
 
     public void start() {
         if (!inited) return;
-        recordBuffer.reset();
-        recordLength = 0;
     }
 
     public void stop() {
@@ -52,18 +48,6 @@ public class Recorder implements Runnable {
         inited = false;
     }
 
-    public int getRecordLength() {
-        return recordLength;
-    }
-
-    public int getAudioData(int index, short[] buffer, int offset, int length) {
-        int resultLength = Math.min(length, recordLength - index);
-        for ( ; index < recordLength; index++ ) {
-            buffer[offset++] = recordBuffer.get(index);
-        }
-        return resultLength;
-    }
-
     @Override
     public void run() {
         short[] buffer = new short[bufferSize];
@@ -71,10 +55,8 @@ public class Recorder implements Runnable {
         while (inited) {
             len = record.read(buffer, 0, bufferSize);
             if (len > 0) {
-                recordLength += len;
-                recordBuffer.put(buffer, 0, len);
                 if (listener != null && System.currentTimeMillis()-lastCallTime > LISTENER_CALL_INTERVAL) {
-                    listener.onUpdated(len);
+                    listener.onUpdated(buffer, len);
                     lastCallTime = System.currentTimeMillis();
                 }
             } else {
@@ -88,6 +70,6 @@ public class Recorder implements Runnable {
 
     // 数据更新监听器
     public interface OnUpdateListener {
-        void onUpdated(int length);
+        void onUpdated(short[] data, int length);
     }
 }
